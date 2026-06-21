@@ -149,7 +149,7 @@ func (a *GeminiProviderAdapter) FromCoreRequest(ctx context.Context, req *format
 					{
 						Name:        t.Name,
 						Description: t.Description,
-						Parameters:  t.InputSchema,
+						Parameters:  format.NormalizeToolInputSchema(t.InputSchema),
 					},
 				},
 			})

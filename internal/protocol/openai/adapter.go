@@ -1831,7 +1831,7 @@ func convertToolWithNamespace(tool Tool, namespace string, disablePatchProxy fun
 		ct := format.CoreTool{
 			Name:        name,
 			Description: tool.Description,
-			InputSchema: tool.Parameters,
+			InputSchema: format.NormalizeToolInputSchema(tool.Parameters),
 		}
 		codextool.AnnotateCoreTool(&ct, codextool.ToolFunction, tool.Name, namespace)
 		return []format.CoreTool{ct}

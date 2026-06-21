@@ -1117,6 +1117,8 @@ func cleanSchema(schema map[string]any) map[string]any {
 	if schema == nil {
 		return nil
 	}
+	// First normalize required arrays recursively (deduplication).
+	schema = format.NormalizeToolInputSchema(schema)
 	result := make(map[string]any, len(schema))
 	for k, v := range schema {
 		switch val := v.(type) {

@@ -882,6 +882,58 @@ func TestFromCoreRequest_Tools(t *testing.T) {
 	}
 }
 
+func TestFromCoreRequest_ToolsDeduplicatesRequired(t *testing.T) {
+	adapter := newTestAdapter()
+	coreReq := &format.CoreRequest{
+		Model: "test",
+		Messages: []format.CoreMessage{
+			{Role: "user", Content: []format.CoreContentBlock{{Type: "text", Text: "use computer"}}},
+		},
+		Tools: []format.CoreTool{
+			{
+				Name:        "mcp__computer_use",
+				Description: "Use a computer",
+				InputSchema: map[string]any{
+					"type":     "object",
+					"required": []any{"action", "app", "element_index", "action"},
+					"properties": map[string]any{
+						"action":        map[string]any{"type": "string"},
+						"app":           map[string]any{"type": "string"},
+						"element_index": map[string]any{"type": "integer"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := adapter.FromCoreRequest(context.Background(), coreReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	geminiReq := result.(*google.GenerateContentRequest)
+
+	if len(geminiReq.Tools) != 1 {
+		t.Fatalf("Tools: got %d, want 1", len(geminiReq.Tools))
+	}
+	if len(geminiReq.Tools[0].FunctionDeclarations) != 1 {
+		t.Fatalf("FunctionDeclarations: got %d, want 1", len(geminiReq.Tools[0].FunctionDeclarations))
+	}
+
+	required, ok := geminiReq.Tools[0].FunctionDeclarations[0].Parameters["required"].([]any)
+	if !ok {
+		t.Fatalf("required type = %T, want []any", geminiReq.Tools[0].FunctionDeclarations[0].Parameters["required"])
+	}
+	want := []any{"action", "app", "element_index"}
+	if len(required) != len(want) {
+		t.Errorf("required = %v, want %v", required, want)
+	}
+	for i, v := range want {
+		if required[i] != v {
+			t.Errorf("required[%d] = %v, want %v", i, required[i], v)
+		}
+	}
+}
+
 func TestFromCoreRequest_SafetySettingsMap(t *testing.T) {
 	adapter := newTestAdapter()
 	coreReq := &format.CoreRequest{

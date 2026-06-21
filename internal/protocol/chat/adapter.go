@@ -125,7 +125,7 @@ func (a *ChatProviderAdapter) FromCoreRequest(ctx context.Context, req *format.C
 				Function: FunctionDef{
 					Name:        t.Name,
 					Description: t.Description,
-					Parameters:  t.InputSchema,
+					Parameters:  format.NormalizeToolInputSchema(t.InputSchema),
 				},
 			})
 		}

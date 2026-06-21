@@ -1183,6 +1183,52 @@ func TestFromCoreRequest_Tools(t *testing.T) {
 	}
 }
 
+func TestFromCoreRequest_ToolsDeduplicatesRequired(t *testing.T) {
+	adapter := newTestAdapter()
+	result, err := adapter.FromCoreRequest(context.Background(), &format.CoreRequest{
+		Model: "gpt-4o",
+		Messages: []format.CoreMessage{
+			{Role: "user", Content: []format.CoreContentBlock{{Type: "text", Text: "use computer"}}},
+		},
+		Tools: []format.CoreTool{
+			{
+				Name:        "mcp__computer_use",
+				Description: "Use a computer",
+				InputSchema: map[string]any{
+					"type":     "object",
+					"required": []any{"action", "app", "element_index", "action"},
+					"properties": map[string]any{
+						"action":        map[string]any{"type": "string"},
+						"app":           map[string]any{"type": "string"},
+						"element_index": map[string]any{"type": "integer"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	chatReq := result.(*chat.ChatRequest)
+	if len(chatReq.Tools) != 1 {
+		t.Fatalf("Tools: got %d, want 1", len(chatReq.Tools))
+	}
+
+	required, ok := chatReq.Tools[0].Function.Parameters["required"].([]any)
+	if !ok {
+		t.Fatalf("required type = %T, want []any", chatReq.Tools[0].Function.Parameters["required"])
+	}
+	want := []any{"action", "app", "element_index"}
+	if len(required) != len(want) {
+		t.Errorf("required = %v, want %v", required, want)
+	}
+	for i, v := range want {
+		if required[i] != v {
+			t.Errorf("required[%d] = %v, want %v", i, required[i], v)
+		}
+	}
+}
+
 func TestFromCoreRequest_ToolChoice(t *testing.T) {
 	adapter := newTestAdapter()
 	tests := []struct {

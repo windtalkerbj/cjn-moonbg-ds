@@ -177,6 +177,56 @@ func TestFromCoreRequest_Tools(t *testing.T) {
 		t.Errorf("tool type = %q, want empty (Anthropic custom tools have no type field)", msgReq.Tools[0].Type)
 	}
 }
+
+func TestFromCoreRequest_ToolsDeduplicatesRequired(t *testing.T) {
+	adapter := newTestAdapter()
+
+	coreReq := &format.CoreRequest{
+		Model: "claude-sonnet-4",
+		Messages: []format.CoreMessage{
+			{Role: "user", Content: []format.CoreContentBlock{{Type: "text", Text: "use computer"}}},
+		},
+		Tools: []format.CoreTool{
+			{
+				Name:        "mcp__computer_use",
+				Description: "Use a computer",
+				InputSchema: map[string]any{
+					"type":     "object",
+					"required": []any{"action", "app", "element_index", "action"},
+					"properties": map[string]any{
+						"action":        map[string]any{"type": "string"},
+						"app":           map[string]any{"type": "string"},
+						"element_index": map[string]any{"type": "integer"},
+					},
+				},
+			},
+		},
+	}
+
+	result, err := adapter.FromCoreRequest(context.Background(), coreReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	msgReq := result.(*anthropic.MessageRequest)
+	if len(msgReq.Tools) != 1 {
+		t.Fatalf("got %d tools, want 1", len(msgReq.Tools))
+	}
+
+	required, ok := msgReq.Tools[0].InputSchema["required"].([]any)
+	if !ok {
+		t.Fatalf("required type = %T, want []any", msgReq.Tools[0].InputSchema["required"])
+	}
+	want := []any{"action", "app", "element_index"}
+	if len(required) != len(want) {
+		t.Errorf("required = %v, want %v", required, want)
+	}
+	for i, v := range want {
+		if required[i] != v {
+			t.Errorf("required[%d] = %v, want %v", i, required[i], v)
+		}
+	}
+}
+
 func TestFromCoreRequest_ImageMessage(t *testing.T) {
 	adapter := newTestAdapter()
 

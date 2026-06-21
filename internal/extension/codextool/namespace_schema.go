@@ -63,7 +63,7 @@ func buildNestedOneOf(toolNames []string, toolMap map[string]format.CoreTool, na
 			}
 			if r, ok := sub.InputSchema["required"].([]any); ok {
 				for _, rv := range r {
-					if rs, ok := rv.(string); ok {
+					if rs, ok := rv.(string); ok && rs != "action" {
 						required = append(required, rs)
 					}
 				}

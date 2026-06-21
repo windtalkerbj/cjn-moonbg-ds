@@ -213,14 +213,14 @@ func (a *OpenAIAdapter) FromCoreResponse(ctx context.Context, resp *format.CoreR
 		for _, block := range msg.Content {
 			switch block.Type {
 			case "text":
-				textParts = append(textParts, ContentPart{Type: "text", Text: block.Text})
+				textParts = append(textParts, ContentPart{Type: "output_text", Text: block.Text})
 
 			case "reasoning":
 				output = append(output, OutputItem{
 					Type:   "reasoning",
 					Status: "completed",
 					Summary: []ReasoningItemSummary{
-						{Type: "text", Text: block.ReasoningText, Signature: block.ReasoningSignature},
+						{Type: "summary_text", Text: block.ReasoningText, Signature: block.ReasoningSignature},
 					},
 				})
 
@@ -242,7 +242,7 @@ func (a *OpenAIAdapter) FromCoreResponse(ctx context.Context, resp *format.CoreR
 				// They are input-side artifacts.
 
 			case "image":
-				textParts = append(textParts, ContentPart{Type: "text", Text: "[Image]"})
+				textParts = append(textParts, ContentPart{Type: "output_text", Text: "[Image]"})
 			}
 		}
 		// Flush remaining text parts.
@@ -932,7 +932,7 @@ func (a *OpenAIAdapter) streamLoopWithBuf(ctx context.Context, coreReq *format.C
 						sig = event.ContentBlock.ReasoningSignature
 					}
 					response.Output[idx].Summary = []ReasoningItemSummary{{
-						Type:      "text",
+						Type:      "summary_text",
 						Text:      contentText[index],
 						Signature: sig,
 					}}

@@ -151,6 +151,68 @@ func TestFromCoreResponse_Basic(t *testing.T) {
 	if resp.Status != "completed" {
 		t.Errorf("Status = %q", resp.Status)
 	}
+	if len(resp.Output) != 1 {
+		t.Fatalf("Output len=%d, want 1", len(resp.Output))
+	}
+	if resp.Output[0].Type != "message" {
+		t.Errorf("Output[0].Type = %q, want message", resp.Output[0].Type)
+	}
+	if len(resp.Output[0].Content) != 1 {
+		t.Fatalf("Output[0].Content len=%d, want 1", len(resp.Output[0].Content))
+	}
+	if resp.Output[0].Content[0].Type != "output_text" {
+		t.Errorf("Output[0].Content[0].Type = %q, want output_text", resp.Output[0].Content[0].Type)
+	}
+	if resp.Output[0].Content[0].Text != "Hello!" {
+		t.Errorf("Output[0].Content[0].Text = %q, want Hello!", resp.Output[0].Content[0].Text)
+	}
+}
+
+func TestFromCoreResponse_Reasoning(t *testing.T) {
+	adapter := openai.NewOpenAIAdapter(format.CorePluginHooks{})
+
+	coreResp := &format.CoreResponse{
+		ID:     "resp_456",
+		Status: "completed",
+		Model:  "o3-mini",
+		Messages: []format.CoreMessage{
+			{Role: "assistant", Content: []format.CoreContentBlock{{
+				Type:               "reasoning",
+				ReasoningText:      "thinking...",
+				ReasoningSignature: "sig123",
+			}}},
+		},
+		Usage: format.CoreUsage{InputTokens: 10, OutputTokens: 20, TotalTokens: 30},
+	}
+
+	result, err := adapter.FromCoreResponse(context.Background(), coreResp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, ok := result.(*openai.Response)
+	if !ok {
+		t.Fatal("expected *openai.Response")
+	}
+
+	if len(resp.Output) != 1 {
+		t.Fatalf("Output len=%d, want 1", len(resp.Output))
+	}
+	if resp.Output[0].Type != "reasoning" {
+		t.Errorf("Output[0].Type = %q, want reasoning", resp.Output[0].Type)
+	}
+	if len(resp.Output[0].Summary) != 1 {
+		t.Fatalf("Output[0].Summary len=%d, want 1", len(resp.Output[0].Summary))
+	}
+	if resp.Output[0].Summary[0].Type != "summary_text" {
+		t.Errorf("Output[0].Summary[0].Type = %q, want summary_text", resp.Output[0].Summary[0].Type)
+	}
+	if resp.Output[0].Summary[0].Text != "thinking..." {
+		t.Errorf("Output[0].Summary[0].Text = %q, want thinking...", resp.Output[0].Summary[0].Text)
+	}
+	if resp.Output[0].Summary[0].Signature != "sig123" {
+		t.Errorf("Output[0].Summary[0].Signature = %q, want sig123", resp.Output[0].Summary[0].Signature)
+	}
 }
 
 func TestFromCoreResponse_Error(t *testing.T) {

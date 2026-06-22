@@ -408,6 +408,19 @@ func (p *DSPlugin) MutateCoreRequest(ctx context.Context, req *format.CoreReques
 		req.Extensions = make(map[string]any)
 	}
 
+	// Extract reasoning effort from the OpenAI request extension.
+	// Codex sends reasoning.effort (xhigh/high) which must be mapped to
+	// DeepSeek's Anthropic-compatible output_config.effort (max/high).
+	if req.Output == nil {
+		if openaiExt, ok := req.Extensions["openai"].(map[string]any); ok {
+			if reasoning, ok := openaiExt["reasoning"].(map[string]any); ok {
+				if effort, yes := reasoningEffort(reasoning); yes {
+					req.Output = &format.CoreOutputConfig{Effort: effort}
+				}
+			}
+		}
+	}
+
 	// Read thinking budget from extension config, default to 4096.
 	budgetTokens := 4096
 	if setting, ok := p.pluginCfg.Extensions[PluginName]; ok && setting.RawConfig != nil {
